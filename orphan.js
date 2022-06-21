@@ -12,6 +12,8 @@
 // @match        *://*/*
 // ==/UserScript==
 
+const MEASURE_TRIGGER_KEY = 'q';
+
 // File: Rect.js
 
 class Rect {
@@ -265,6 +267,30 @@ let selectedElement;
 let targetElement;
 let delayedDismiss = false;
 let delayedRef = null;
+
+const removeLinkHandler = function (e) {
+  if (e.key === 'F2') {
+    const a = document.getElementsByTagName("a");
+    function stop(event) {
+      //IE和Chrome下是window.event 火狐下是event
+      event = event || window.event;
+      if (event.preventDefault) { //event.preventDefault(); 取消事件的默认动作
+        event.preventDefault();
+      } else {
+        event.returnValue = false;
+      }
+    };
+
+    for (var i = 0; i < a.length; i++) {
+      a[i].onclick = function (e) {
+        stop(e); //阻止跳转
+        return false;
+      }
+    }
+    console.log('All clicking behavior disabled');
+  }
+};
+
 const Spacing = {
   start() {
     if (!document.body) {
@@ -274,7 +300,19 @@ const Spacing = {
     window.addEventListener('keydown', keyDownHandler);
     window.addEventListener('keyup', keyUpHandler);
     window.addEventListener('mousemove', cursorMovedHandler);
+
+    // press F2 to remove all links
+    window.addEventListener('keydown', removeLinkHandler);
+    console.log('spacingjs successfully loaded');
   },
+
+  stop() {
+    window.removeEventListener('keydown', keyDownHandler);
+    window.removeEventListener('keyup', keyUpHandler);
+    window.removeEventListener('mousemove', cursorMovedHandler);
+
+    window.removeEventListener('keydown', removeLinkHandler);
+  }
 };
 
 function keyDownHandler(e) {
@@ -285,7 +323,7 @@ function keyDownHandler(e) {
       delayedRef = null;
     }
   }
-  if (e.key === 'Alt' && !active) {
+  if (e.key === MEASURE_TRIGGER_KEY && !active) {
     e.preventDefault();
     active = true;
     setSelectedElement();
@@ -297,7 +335,7 @@ function keyDownHandler(e) {
 }
 
 function keyUpHandler(e) {
-  if (e.key === 'Alt' && active) {
+  if (e.key === MEASURE_TRIGGER_KEY && active) {
     active = false;
     delayedRef = setTimeout(() => {
       cleanUp();
