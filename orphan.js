@@ -13,6 +13,27 @@
 // ==/UserScript==
 
 const MEASURE_TRIGGER_KEY = 'q';
+const TOAST_CLASS = `toast-${Math.random().toString(16).substring(2, 6)}`;
+const TOAST_SELECTOR = `.${TOAST_CLASS}`;
+
+const createToastNode = (msg) => {
+  const node = document.createElement('div');
+  node.classList.add(TOAST_CLASS);
+  node.innerText = msg;
+  return node;
+};
+
+const showToast = (msg) => {
+  const toastNode = createToastNode(msg);
+
+  document.querySelector('body').appendChild(toastNode);
+  setTimeout(() => {
+    const node = document.querySelector(TOAST_SELECTOR);
+    if (node) {
+      document.body.removeChild(node);
+    }
+  }, 4000);
+};
 
 // File: Rect.js
 
@@ -25,34 +46,37 @@ class Rect {
     this.right = rect.right;
     this.bottom = rect.bottom;
   }
+
   colliding(other) {
-    return !(this.top > other.bottom ||
-      this.right < other.left ||
-      this.bottom < other.top ||
-      this.left > other.right);
+    return !(this.top > other.bottom
+      || this.right < other.left
+      || this.bottom < other.top
+      || this.left > other.right);
   }
+
   containing(other) {
-    return (this.left <= other.left &&
-      other.left < this.width &&
-      this.top <= other.top &&
-      other.top < this.height);
+    return (this.left <= other.left
+      && other.left < this.width
+      && this.top <= other.top
+      && other.top < this.height);
   }
+
   inside(other) {
-    return (other.top <= this.top &&
-      this.top <= other.bottom &&
-      other.top <= this.bottom &&
-      this.bottom <= other.bottom &&
-      other.left <= this.left &&
-      this.left <= other.right &&
-      other.left <= this.right &&
-      this.right <= other.right);
+    return (other.top <= this.top
+      && this.top <= other.bottom
+      && other.top <= this.bottom
+      && this.bottom <= other.bottom
+      && other.left <= this.left
+      && this.left <= other.right
+      && other.left <= this.right
+      && this.right <= other.right);
   }
 }
 
 // File: placeholder.js
 
 function createPlaceholderElement(type, width, height, top, left, color) {
-  let placeholder = document.createElement('div');
+  const placeholder = document.createElement('div');
   placeholder.classList.add(`spacing-js-${type}-placeholder`);
   placeholder.style.border = `2px solid ${color}`;
   placeholder.style.position = 'fixed';
@@ -68,7 +92,7 @@ function createPlaceholderElement(type, width, height, top, left, color) {
   placeholder.style.zIndex = '9999';
   placeholder.style.boxSizing = 'content-box';
   document.body.appendChild(placeholder);
-  let dimension = document.createElement('span');
+  const dimension = document.createElement('span');
   dimension.style.background = color;
   dimension.style.position = 'fixed';
   dimension.style.display = 'inline-block';
@@ -83,8 +107,7 @@ function createPlaceholderElement(type, width, height, top, left, color) {
       arrow = '↑ '; // Top-Left corner is offscreen
     }
     dimension.style.borderRadius = '2px 0 2px 0';
-  }
-  else {
+  } else {
     dimension.style.transform = 'translateY(calc(-100% + 2px))';
     dimension.style.borderRadius = '2px 2px 0 0';
   }
@@ -104,10 +127,10 @@ function clearPlaceholderElement(type) {
 // File: marker.js
 
 function createLine(width, height, top, left, text, border = 'none') {
-  let marker = document.createElement('span');
+  const marker = document.createElement('span');
   marker.style.backgroundColor = 'red';
   marker.style.position = 'fixed';
-  marker.classList.add(`spacing-js-marker`);
+  marker.classList.add('spacing-js-marker');
   marker.style.width = `${width}px`;
   marker.style.height = `${height}px`;
   if (border === 'x') {
@@ -123,8 +146,8 @@ function createLine(width, height, top, left, text, border = 'none') {
   marker.style.left = `${left}px`;
   marker.style.zIndex = '9998';
   marker.style.boxSizing = 'content-box';
-  let value = document.createElement('span');
-  value.classList.add(`spacing-js-value`);
+  const value = document.createElement('span');
+  value.classList.add('spacing-js-value');
   value.style.backgroundColor = 'red';
   value.style.color = 'white';
   value.style.fontSize = '10px';
@@ -152,8 +175,7 @@ function createLine(width, height, top, left, text, border = 'none') {
     }
     value.style.top = `${topOffset}px`;
     value.style.left = `${left + 6}px`;
-  }
-  else if (border === 'y') {
+  } else if (border === 'y') {
     // Prevent the badge moved outside the screen
     let leftOffset = left + width / 2 - 20;
     if (leftOffset > document.documentElement.clientWidth - 48) {
@@ -171,10 +193,10 @@ function createLine(width, height, top, left, text, border = 'none') {
 
 function placeMark(rect1, rect2, direction, value, edgeToEdge = false) {
   if (direction === 'top') {
-    let width = 1;
+    const width = 1;
     let height = Math.abs(rect1.top - rect2.top);
-    let left = Math.floor((Math.min(rect1.right, rect2.right) + Math.max(rect1.left, rect2.left)) /
-      2);
+    const left = Math.floor((Math.min(rect1.right, rect2.right) + Math.max(rect1.left, rect2.left))
+      / 2);
     let top = Math.min(rect1.top, rect2.top);
     if (edgeToEdge) {
       if (rect1.top < rect2.top) {
@@ -188,12 +210,11 @@ function placeMark(rect1, rect2, direction, value, edgeToEdge = false) {
       top = Math.min(rect2.bottom, rect1.top);
     }
     createLine(width, height, top, left, value, 'x');
-  }
-  else if (direction === 'left') {
+  } else if (direction === 'left') {
     let width = Math.abs(rect1.left - rect2.left);
-    let height = 1;
-    let top = Math.floor((Math.min(rect1.bottom, rect2.bottom) + Math.max(rect1.top, rect2.top)) /
-      2);
+    const height = 1;
+    const top = Math.floor((Math.min(rect1.bottom, rect2.bottom) + Math.max(rect1.top, rect2.top))
+      / 2);
     let left = Math.min(rect1.left, rect2.left);
     if (edgeToEdge) {
       if (rect1.left < rect2.left) {
@@ -207,13 +228,12 @@ function placeMark(rect1, rect2, direction, value, edgeToEdge = false) {
       left = Math.min(rect2.right, rect1.left);
     }
     createLine(width, height, top, left, value, 'y');
-  }
-  else if (direction === 'right') {
+  } else if (direction === 'right') {
     let width = Math.abs(rect1.right - rect2.right);
-    let height = 1;
-    let top = Math.floor((Math.min(rect1.bottom, rect2.bottom) + Math.max(rect1.top, rect2.top)) /
-      2);
-    let left = Math.min(rect1.right, rect2.right);
+    const height = 1;
+    const top = Math.floor((Math.min(rect1.bottom, rect2.bottom) + Math.max(rect1.top, rect2.top))
+      / 2);
+    const left = Math.min(rect1.right, rect2.right);
     if (edgeToEdge) {
       if (rect1.left > rect2.right) {
         return;
@@ -225,13 +245,12 @@ function placeMark(rect1, rect2, direction, value, edgeToEdge = false) {
       width = Math.abs(rect1.right - rect2.left);
     }
     createLine(width, height, top, left, value, 'y');
-  }
-  else if (direction === 'bottom') {
-    let width = 1;
+  } else if (direction === 'bottom') {
+    const width = 1;
     let height = Math.abs(rect1.bottom - rect2.bottom);
-    let top = Math.min(rect1.bottom, rect2.bottom);
-    let left = Math.floor((Math.min(rect1.right, rect2.right) + Math.max(rect1.left, rect2.left)) /
-      2);
+    const top = Math.min(rect1.bottom, rect2.bottom);
+    const left = Math.floor((Math.min(rect1.right, rect2.right) + Math.max(rect1.left, rect2.left))
+      / 2);
     if (edgeToEdge) {
       if (rect2.bottom < rect1.top) {
         return;
@@ -249,12 +268,12 @@ function placeMark(rect1, rect2, direction, value, edgeToEdge = false) {
 function removeMarks() {
   document
     .querySelectorAll('.spacing-js-marker')
-    .forEach(function (element) {
+    .forEach((element) => {
       element.remove();
     });
   document
     .querySelectorAll('.spacing-js-value')
-    .forEach(function (element) {
+    .forEach((element) => {
       element.remove();
     });
 }
@@ -268,24 +287,24 @@ let targetElement;
 let delayedDismiss = false;
 let delayedRef = null;
 
-const removeLinkHandler = function (e) {
+const removeLinkHandler = (e) => {
   if (e.key === 'F2') {
-    const a = document.getElementsByTagName("a");
+    const a = document.getElementsByTagName('a');
     function stop(event) {
-      //IE和Chrome下是window.event 火狐下是event
+      // IE和Chrome下是window.event 火狐下是event
       event = event || window.event;
-      if (event.preventDefault) { //event.preventDefault(); 取消事件的默认动作
+      if (event.preventDefault) { // event.preventDefault(); 取消事件的默认动作
         event.preventDefault();
       } else {
         event.returnValue = false;
       }
-    };
+    }
 
-    for (var i = 0; i < a.length; i++) {
-      a[i].onclick = function (e) {
-        stop(e); //阻止跳转
+    for (let i = 0; i < a.length; i++) {
+      a[i].onclick = (e) => {
+        stop(e); // 阻止跳转
         return false;
-      }
+      };
     }
     console.log('All clicking behavior disabled');
   }
@@ -293,8 +312,38 @@ const removeLinkHandler = function (e) {
 
 const Spacing = {
   start() {
-    if (!document.body) {
-      console.warn(`Unable to initialise, document.body does not exist.`);
+    // toast style
+    const css = document.createElement('style');
+    css.innerText = `.${TOAST_CLASS} {
+      min-width: 250px;
+      margin-left: -125px;
+      background-color: #333;
+      color: #fff;
+      text-align: center;
+      border-radius: 4px;
+      padding: 16px;
+      position: fixed;
+      z-index: 99999;
+      left: 50%;
+      top: 30px;
+      font-size: 17px;
+      animation: ${TOAST_CLASS}-fadein 0.5s, ${TOAST_CLASS}-fadeout 0.5s 2.5s;
+    }
+    
+    @keyframes ${TOAST_CLASS}-fadein {
+      from {top: 0; opacity: 0;}
+      to {top: 30px; opacity: 1;}
+    }
+    
+    @keyframes ${TOAST_CLASS}-fadeout {
+      from {top: 30px; opacity: 1;}
+      to {top: 0; opacity: 0;}
+    }`;
+    document.querySelector('head').appendChild(css);
+
+    if (!document.querySelector('body')) {
+      showToast('Unable to initialise, document.body does not exist.');
+      console.warn('Unable to initialise, document.body does not exist.');
       return;
     }
     window.addEventListener('keydown', keyDownHandler);
@@ -303,7 +352,9 @@ const Spacing = {
 
     // press F2 to remove all links
     window.addEventListener('keydown', removeLinkHandler);
-    console.log('spacingjs successfully loaded');
+
+    showToast('spacingjs successfully loaded in this frame!');
+    console.log('spacingjs successfully loaded in this frame!');
   },
 
   stop() {
@@ -312,7 +363,7 @@ const Spacing = {
     window.removeEventListener('mousemove', cursorMovedHandler);
 
     window.removeEventListener('keydown', removeLinkHandler);
-  }
+  },
 };
 
 function keyDownHandler(e) {
@@ -357,8 +408,7 @@ function cursorMovedHandler(e) {
   if (e.composedPath) {
     // Use composedPath to detect the hovering element for supporting shadow DOM
     hoveringElement = e.composedPath()[0];
-  }
-  else {
+  } else {
     // Fallback if not support composedPath
     hoveringElement = e.target;
   }
@@ -369,24 +419,24 @@ function cursorMovedHandler(e) {
   setTargetElement().then(() => {
     if (selectedElement != null && targetElement != null) {
       // Do the calculation
-      let selectedElementRect = selectedElement.getBoundingClientRect();
-      let targetElementRect = targetElement.getBoundingClientRect();
-      let selected = new Rect(selectedElementRect);
-      let target = new Rect(targetElementRect);
+      const selectedElementRect = selectedElement.getBoundingClientRect();
+      const targetElementRect = targetElement.getBoundingClientRect();
+      const selected = new Rect(selectedElementRect);
+      const target = new Rect(targetElementRect);
       removeMarks();
-      let top, bottom, left, right, outside;
-      if (selected.containing(target) ||
-        selected.inside(target) ||
-        selected.colliding(target)) {
-        console.log(`containing || inside || colliding`);
+      let top; let bottom; let left; let right; let
+        outside;
+      if (selected.containing(target)
+        || selected.inside(target)
+        || selected.colliding(target)) {
+        console.log('containing || inside || colliding');
         top = Math.round(Math.abs(selectedElementRect.top - targetElementRect.top));
         bottom = Math.round(Math.abs(selectedElementRect.bottom - targetElementRect.bottom));
         left = Math.round(Math.abs(selectedElementRect.left - targetElementRect.left));
         right = Math.round(Math.abs(selectedElementRect.right - targetElementRect.right));
         outside = false;
-      }
-      else {
-        console.log(`outside`);
+      } else {
+        console.log('outside');
         top = Math.round(Math.abs(selectedElementRect.top - targetElementRect.bottom));
         bottom = Math.round(Math.abs(selectedElementRect.bottom - targetElementRect.top));
         left = Math.round(Math.abs(selectedElementRect.left - targetElementRect.right));
@@ -405,20 +455,20 @@ function setSelectedElement() {
   if (hoveringElement && hoveringElement !== selectedElement) {
     selectedElement = hoveringElement;
     clearPlaceholderElement('selected');
-    let rect = selectedElement.getBoundingClientRect();
-    createPlaceholderElement('selected', rect.width, rect.height, rect.top, rect.left, `red`);
+    const rect = selectedElement.getBoundingClientRect();
+    createPlaceholderElement('selected', rect.width, rect.height, rect.top, rect.left, 'red');
   }
 }
 
 function setTargetElement() {
   return new Promise((resolve, reject) => {
-    if (active &&
-      hoveringElement &&
-      hoveringElement !== selectedElement &&
-      hoveringElement !== targetElement) {
+    if (active
+      && hoveringElement
+      && hoveringElement !== selectedElement
+      && hoveringElement !== targetElement) {
       targetElement = hoveringElement;
       clearPlaceholderElement('target');
-      let rect = targetElement.getBoundingClientRect();
+      const rect = targetElement.getBoundingClientRect();
       createPlaceholderElement('target', rect.width, rect.height, rect.top, rect.left, 'blue');
       resolve();
     }
@@ -428,14 +478,9 @@ function setTargetElement() {
 function preventPageScroll(active) {
   if (active) {
     window.addEventListener('DOMMouseScroll', scrollingPreventDefault, false);
-    window.addEventListener('wheel', scrollingPreventDefault, {
-      passive: false,
-    });
-    window.addEventListener('mousewheel', scrollingPreventDefault, {
-      passive: false,
-    });
-  }
-  else {
+    window.addEventListener('wheel', scrollingPreventDefault, { passive: false });
+    window.addEventListener('mousewheel', scrollingPreventDefault, { passive: false });
+  } else {
     window.removeEventListener('DOMMouseScroll', scrollingPreventDefault);
     window.removeEventListener('wheel', scrollingPreventDefault);
     window.removeEventListener('mousewheel', scrollingPreventDefault);
@@ -447,5 +492,5 @@ function scrollingPreventDefault(e) {
 }
 
 // File: index.js
-
-Spacing.start();
+// delay starting so that document is loaded
+window.addEventListener('load', Spacing.start);
