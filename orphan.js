@@ -8,12 +8,14 @@
 // @grant        none
 // @not-require  https://unpkg.com/spacingjs
 // @icon         https://lh3.googleusercontent.com/Z21RzHwgZJ25br-OdZV0ME4zjkrEPnsoGm8DGTbgk7x5cP-wpwav91fYtcmchLx_pHonfD_AFGaBj2yAKIvKqFppIA=w128-h128-e365-rj-sc0x00ffffff
-// @run-at       document-start
+// @run-at document-start
 // @match        *://*/*
 // ==/UserScript==
 
 const MEASURE_TRIGGER_KEY = 'q';
-const TOAST_CLASS = `toast-${Math.random().toString(16).substring(2, 6)}`;
+const SESSION_RANDOM = Math.random().toString(16).substring(2, 6);
+const TOAST_CLASS = `toast-${SESSION_RANDOM}`;
+// const HOVER_DISABLED_CSS_ID = `hover-disabled-${SESSION_RANDOM}`;
 const TOAST_SELECTOR = `.${TOAST_CLASS}`;
 
 const createToastNode = (msg) => {
@@ -32,50 +34,46 @@ const showToast = (msg) => {
     if (node) {
       document.body.removeChild(node);
     }
-  }, 4000);
+  }, 3000);
 };
 
 // File: Rect.js
 
 class Rect {
   constructor(rect) {
-    this.top = rect.top;
     this.left = rect.left;
+    this.right = rect.right;
+    this.top = rect.top;
+    this.bottom = rect.bottom;
     this.width = rect.width;
     this.height = rect.height;
-    this.right = rect.right;
-    this.bottom = rect.bottom;
   }
 
-  colliding(other) {
-    return !(this.top > other.bottom
-      || this.right < other.left
-      || this.bottom < other.top
-      || this.left > other.right);
+  colliding(that) {
+    return this.top < that.bottom
+      && this.right > that.left
+      && this.bottom > that.top
+      && this.left < that.right;
   }
 
-  containing(other) {
-    return (this.left <= other.left
-      && other.left < this.width
-      && this.top <= other.top
-      && other.top < this.height);
+  containing(that) {
+    return this.top < that.top
+      && this.right > that.right
+      && this.bottom > that.bottom
+      && this.left < that.left;
   }
 
-  inside(other) {
-    return (other.top <= this.top
-      && this.top <= other.bottom
-      && other.top <= this.bottom
-      && this.bottom <= other.bottom
-      && other.left <= this.left
-      && this.left <= other.right
-      && other.left <= this.right
-      && this.right <= other.right);
+  inside(that) {
+    return this.top > that.top
+      && this.right < that.right
+      && this.bottom < that.bottom
+      && this.left > that.left;
   }
 }
 
 // File: placeholder.js
 
-function createPlaceholderElement(type, width, height, top, left, color) {
+const createPlaceholderElement = (type, width, height, top, left, color) => {
   const placeholder = document.createElement('div');
   placeholder.classList.add(`spacing-js-${type}-placeholder`);
   placeholder.style.border = `2px solid ${color}`;
@@ -115,18 +113,18 @@ function createPlaceholderElement(type, width, height, top, left, color) {
   dimension.style.left = `${left - 1}px`;
   dimension.innerText = `${arrow} ${Math.round(width)}px × ${Math.round(height)}px`;
   placeholder.appendChild(dimension);
-}
+};
 
-function clearPlaceholderElement(type) {
+const clearPlaceholderElement = (type) => {
   const placeholder = document.querySelector(`.spacing-js-${type}-placeholder`);
   if (placeholder) {
     placeholder.remove();
   }
-}
+};
 
 // File: marker.js
 
-function createLine(width, height, top, left, text, border = 'none') {
+const createLine = (width, height, top, left, text, border = 'none') => {
   const marker = document.createElement('span');
   marker.style.backgroundColor = 'red';
   marker.style.position = 'fixed';
@@ -189,9 +187,9 @@ function createLine(width, height, top, left, text, border = 'none') {
   }
   document.body.appendChild(marker);
   document.body.appendChild(value);
-}
+};
 
-function placeMark(rect1, rect2, direction, value, edgeToEdge = false) {
+const placeMark = (rect1, rect2, direction, value, edgeToEdge = false) => {
   if (direction === 'top') {
     const width = 1;
     let height = Math.abs(rect1.top - rect2.top);
@@ -263,20 +261,16 @@ function placeMark(rect1, rect2, direction, value, edgeToEdge = false) {
     }
     createLine(width, height, top, left, value, 'x');
   }
-}
+};
 
-function removeMarks() {
+const removeMarks = () => {
   document
     .querySelectorAll('.spacing-js-marker')
-    .forEach((element) => {
-      element.remove();
-    });
+    .forEach((element) => element.remove());
   document
     .querySelectorAll('.spacing-js-value')
-    .forEach((element) => {
-      element.remove();
-    });
-}
+    .forEach((element) => element.remove());
+};
 
 // File: spacing.js
 
@@ -287,74 +281,117 @@ let targetElement;
 let delayedDismiss = false;
 let delayedRef = null;
 
-const removeLinkHandler = (e) => {
-  if (e.key === 'F2') {
-    const a = document.getElementsByTagName('a');
-    function stop(event) {
-      // IE和Chrome下是window.event 火狐下是event
-      event = event || window.event;
-      if (event.preventDefault) { // event.preventDefault(); 取消事件的默认动作
-        event.preventDefault();
-      } else {
-        event.returnValue = false;
-      }
-    }
+const eventTypesToRemove = ['click', 'mouseover', 'mouseenter'];
 
-    for (let i = 0; i < a.length; i++) {
-      a[i].onclick = (e) => {
-        stop(e); // 阻止跳转
-        return false;
-      };
-    }
-    console.log('All clicking behavior disabled');
+const removeClickHandler = (clickEvent) => {
+  clickEvent.preventDefault();
+  clickEvent.stopImmediatePropagation();
+  return false;
+};
+
+// const addDisableHoverStyle = () => {
+//   const hasAdded = !!document.getElementById(HOVER_DISABLED_CSS_ID);
+//   if (hasAdded) {
+//     return;
+//   }
+
+//   // hover style override
+//   const hoverStyle = document.createElement('style');
+//   hoverStyle.id = HOVER_DISABLED_CSS_ID;
+//   hoverStyle.innerText = '*:hover {}';
+//   document.querySelector('head').appendChild(hoverStyle);
+// };
+
+const removeAllLinks = (keyboardEvent) => {
+  if (keyboardEvent.key !== '1') {
+    return;
   }
+
+  // addDisableHoverStyle();
+
+  eventTypesToRemove.forEach((eventType) => {
+    window.addEventListener(
+      eventType,
+      removeClickHandler,
+      true,
+    );
+  });
+  showToast('Click behavior disabled');
+};
+
+// const removeDisableHoverStyle = () => {
+//   const style = document.getElementById(HOVER_DISABLED_CSS_ID);
+//   if (!style) {
+//     return;
+//   }
+//   style.remove();
+// };
+
+const restoreAllLinks = (keyboardEvent) => {
+  if (keyboardEvent.key !== '2') {
+    return;
+  }
+  // removeDisableHoverStyle();
+  eventTypesToRemove.forEach((eventType) => {
+    window.removeEventListener(
+      eventType,
+      removeClickHandler,
+      true,
+    );
+  });
+  showToast('Click behavior restored');
+};
+
+const addToastStyle = () => {
+  // toast style
+  const toastStyle = document.createElement('style');
+  toastStyle.innerText = `${TOAST_SELECTOR} {
+  min-width: 250px;
+  margin-left: -125px;
+  background-color: #333;
+  color: #fff;
+  text-align: center;
+  border-radius: 4px;
+  padding: 16px;
+  position: fixed;
+  z-index: 99999;
+  left: 50%;
+  top: 30px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "apple color emoji", "segoe ui emoji", "Segoe UI Symbol", "noto color emoji";
+  font-size: 17px;
+  animation: ${TOAST_CLASS}-fadein 0.5s forwards, ${TOAST_CLASS}-fadeout 0.5s 2.5s forwards;
+}
+
+@keyframes ${TOAST_CLASS}-fadein {
+  from {top: 0; opacity: 0;}
+  to {top: 30px; opacity: 1;}
+}
+
+@keyframes ${TOAST_CLASS}-fadeout {
+  from {top: 30px; opacity: 1;}
+  to {top: 0; opacity: 0;}
+}`;
+  document.querySelector('head').appendChild(toastStyle);
 };
 
 const Spacing = {
   start() {
-    // toast style
-    const css = document.createElement('style');
-    css.innerText = `.${TOAST_CLASS} {
-      min-width: 250px;
-      margin-left: -125px;
-      background-color: #333;
-      color: #fff;
-      text-align: center;
-      border-radius: 4px;
-      padding: 16px;
-      position: fixed;
-      z-index: 99999;
-      left: 50%;
-      top: 30px;
-      font-size: 17px;
-      animation: ${TOAST_CLASS}-fadein 0.5s, ${TOAST_CLASS}-fadeout 0.5s 2.5s;
-    }
-    
-    @keyframes ${TOAST_CLASS}-fadein {
-      from {top: 0; opacity: 0;}
-      to {top: 30px; opacity: 1;}
-    }
-    
-    @keyframes ${TOAST_CLASS}-fadeout {
-      from {top: 30px; opacity: 1;}
-      to {top: 0; opacity: 0;}
-    }`;
-    document.querySelector('head').appendChild(css);
+    addToastStyle();
 
     if (!document.querySelector('body')) {
       showToast('Unable to initialise, document.body does not exist.');
-      console.warn('Unable to initialise, document.body does not exist.');
       return;
     }
     window.addEventListener('keydown', keyDownHandler);
     window.addEventListener('keyup', keyUpHandler);
     window.addEventListener('mousemove', cursorMovedHandler);
 
-    // press F2 to remove all links
-    window.addEventListener('keydown', removeLinkHandler);
+    // press 1 to remove all links
+    window.addEventListener('keydown', removeAllLinks);
+    // press 2 to restore all links
+    window.addEventListener('keydown', restoreAllLinks);
 
-    showToast('spacingjs successfully loaded in this frame!');
-    console.log('spacingjs successfully loaded in this frame!');
+    showToast('spacingjs loaded in this frame!');
   },
 
   stop() {
@@ -362,7 +399,8 @@ const Spacing = {
     window.removeEventListener('keyup', keyUpHandler);
     window.removeEventListener('mousemove', cursorMovedHandler);
 
-    window.removeEventListener('keydown', removeLinkHandler);
+    window.removeEventListener('keydown', removeAllLinks);
+    window.removeEventListener('keydown', restoreAllLinks);
   },
 };
 
@@ -407,7 +445,7 @@ function cleanUp() {
 function cursorMovedHandler(e) {
   if (e.composedPath) {
     // Use composedPath to detect the hovering element for supporting shadow DOM
-    hoveringElement = e.composedPath()[0];
+    [hoveringElement] = e.composedPath();
   } else {
     // Fallback if not support composedPath
     hoveringElement = e.target;
@@ -424,8 +462,11 @@ function cursorMovedHandler(e) {
       const selected = new Rect(selectedElementRect);
       const target = new Rect(targetElementRect);
       removeMarks();
-      let top; let bottom; let left; let right; let
-        outside;
+      let top;
+      let bottom;
+      let left;
+      let right;
+      let outside;
       if (selected.containing(target)
         || selected.inside(target)
         || selected.colliding(target)) {
@@ -461,7 +502,7 @@ function setSelectedElement() {
 }
 
 function setTargetElement() {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     if (active
       && hoveringElement
       && hoveringElement !== selectedElement
@@ -475,8 +516,8 @@ function setTargetElement() {
   });
 }
 
-function preventPageScroll(active) {
-  if (active) {
+function preventPageScroll(_active) {
+  if (_active) {
     window.addEventListener('DOMMouseScroll', scrollingPreventDefault, false);
     window.addEventListener('wheel', scrollingPreventDefault, { passive: false });
     window.addEventListener('mousewheel', scrollingPreventDefault, { passive: false });
@@ -492,5 +533,7 @@ function scrollingPreventDefault(e) {
 }
 
 // File: index.js
-// delay starting so that document is loaded
+// load the file as fast as possible (`@run-at` in metadata),
+// but `spacing.start()` triggers when load event is fired
+// so that `body` is more likely to be loaded
 window.addEventListener('load', Spacing.start);
