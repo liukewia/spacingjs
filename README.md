@@ -1,49 +1,45 @@
-# Spacing JS
+# Spacing JS [edited version]
 
-[![npm version](https://img.shields.io/npm/v/spacingjs.svg)](https://www.npmjs.com/package/@stevenlei/spacingjs)
-![GitHub Stars](https://img.shields.io/github/stars/stevenlei/spacingjs)
-![Github Forks](https://img.shields.io/github/forks/stevenlei/spacingjs)
-![GitHub Open Issues](https://img.shields.io/github/issues/stevenlei/spacingjs)
-![License](https://img.shields.io/github/license/stevenlei/spacingjs)
+## Installation
 
-A JavaScript utility for measuring the spacing between elements on webpage. This is supposed to be used during development only. [Try this out](https://spacingjs.com).
+1. chrome 安装 油猴
 
-![](screenshot.png)
+2. 油猴新建脚本，填入 orphan.js 内容，保存
 
-Read this document in other languages: [English](README.md), [繁體中文](README.zh-Hant.md), [简体中文](README.zh-Hans.md).
+## Usage
 
-## How to use
+### PC
 
-1. Include Spacing.js with `<script>` tag in your HTML page:
+进入页面，顶部出现加载成功 toast 方可用
 
-- UNPKG CDN:
+鼠标移动到一元素，按住 q 显示其尺寸；不松 q，鼠标移动到另一横向或纵向有交集的元素，显示另一元素的尺寸及两元素距离。
 
-```html
-<script src="//unpkg.com/spacingjs" defer></script>
-```
+### mobile
 
-- jsDelivr CDN:
+进入页面，顶部出现加载成功 toast 方可用
 
-```html
-<script src="//cdn.jsdelivr.net/npm/spacingjs" defer></script>
-```
+方式一（推荐）：
 
-2. Move your mouse cursor to an element, and press <kbd>Alt</kbd> on Windows or <kbd>⌥ Option</kbd> on a Mac.
+![chrome-mobile-usage](./images/chrome-mobile-usage.png)
 
-3. Move your mouse cursor to another element, the measurement results will be there.
+1. 点击三个点
 
-## More Options
+2. 点击 add device type
 
-Hold down with <kbd>Shift</kbd> key will delay the dismiss of measurement results, so that we can take a screenshot easier.
+3. 选 responsive
 
-## Chrome Extension & Tampermonkey version
+4. 选 mobile (no touch)
 
-You can install the Chrome Extension version on the [Chrome web store](https://chrome.google.com/webstore/detail/spacingjs/fhjegjndanjcamfldhenjnhnjheecgcc), or build on your own with `npm run ext`.
+鼠标移动到到一元素，按住 q 显示其尺寸；不松 q，鼠标移动到另一横向或纵向有交集的元素，显示另一元素的尺寸及两元素距离。
 
-## Contribute
+方式二：
 
-Feel free to fork this repository and submit pull requests. Bugs report in [GitHub Issues](https://github.com/stevenlei/spacingjs/issues), features/ideas/questions discuss in [GitHub Discussions](https://github.com/stevenlei/spacingjs/discussions).
+鼠标点击一元素，按住 q 显示其尺寸；不松 q，鼠标点击另一横向或纵向有交集的元素，显示另一元素的尺寸及两元素距离。
 
-## License
+### PC, mobile 通用额外功能：
 
-Spacing.js is [MIT Licensed](LICENSE).
+按 1 禁用所有点击行为；
+
+按 2 恢复所有点击行为；
+
+按 3 为所有文本外边缘添加容器让其可显示尺寸；

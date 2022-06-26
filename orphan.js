@@ -100,14 +100,16 @@ const createPlaceholderElement = (type, width, height, top, left, color) => {
   placeholder.style.borderRadius = '2px';
   placeholder.style.padding = '0';
   placeholder.style.margin = '0';
+  placeholder.style.boxSizing = 'content-box';
   placeholder.style.width = `${width - 2}px`;
   placeholder.style.height = `${height - 2}px`;
+  // when content-box, top contains margin, but not border
   placeholder.style.top = `${top - 1}px`;
   placeholder.style.left = `${left - 1}px`;
   placeholder.style.pointerEvents = 'none';
   placeholder.style.zIndex = PLACEHOLDER_Z_INDEX.toString();
-  placeholder.style.boxSizing = 'content-box';
   document.body.appendChild(placeholder);
+
   const dimension = document.createElement('span');
   dimension.classList.add(TEXT_CLASS);
   dimension.style.background = color;
@@ -116,6 +118,8 @@ const createPlaceholderElement = (type, width, height, top, left, color) => {
   dimension.style.color = '#fff';
   dimension.style.padding = '2px 4px';
   dimension.style.fontSize = '10px';
+  dimension.style.fontWeight = 'bold';
+
   let arrow = '';
   let topOffset = top;
   if (top < 20) {
@@ -128,9 +132,10 @@ const createPlaceholderElement = (type, width, height, top, left, color) => {
     dimension.style.transform = 'translateY(calc(-100% + 2px))';
     dimension.style.borderRadius = '2px 2px 0 0';
   }
+  // TODO may be offscreen
   dimension.style.top = `${topOffset - 1}px`;
   dimension.style.left = `${left - 1}px`;
-  dimension.innerText = `${arrow} ${Math.round(width)} × ${Math.round(height)}`;
+  dimension.innerText = `${arrow}${Math.round(width)} × ${Math.round(height)}`;
   placeholder.appendChild(dimension);
 };
 
@@ -167,6 +172,7 @@ const createLine = (width, height, top, left, text, border = 'none') => {
   value.style.backgroundColor = 'red';
   value.style.color = 'white';
   value.style.fontSize = '10px';
+  value.style.fontWeight = 'bold';
   value.style.display = 'inline-block';
   value.style.borderRadius = '20px';
   value.style.position = 'fixed';
@@ -370,7 +376,6 @@ const createToastStyle = () => {
     }
     
     .${TEXT_CLASS} {
-      font-weight: bold;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "apple color emoji", "segoe ui emoji", "Segoe UI Symbol", "noto color emoji";
     }`;
   return toastStyle;
@@ -382,8 +387,8 @@ const makeTextNodesSelectable = (keyboardEvent) => {
   }
   const NODE_NAMES_NOT_TO_CHECK = [
     'script',
-    'style',
     'noscript',
+    'style',
     '#text',
     '#comment',
     '#document',
@@ -393,10 +398,12 @@ const makeTextNodesSelectable = (keyboardEvent) => {
     const node = nodeList.shift();
     const parent = node.parentNode;
     const nodeName = parent.nodeName.toLowerCase();
+    const { wholeText } = node;
     if (node.nodeType === node.TEXT_NODE
+      && !/^\s*$/.test(wholeText)
       && !NODE_NAMES_NOT_TO_CHECK.includes(nodeName)) {
       const span = document.createElement('span');
-      span.innerText = node.wholeText;
+      span.innerText = wholeText;
       parent.replaceChild(span, node);
     } else {
       nodeList.unshift(...node.childNodes);
@@ -407,17 +414,16 @@ const makeTextNodesSelectable = (keyboardEvent) => {
 
 const Spacing = {
   start() {
+    if (!document.body) {
+      console.log('Unable to initialise, document.body does not exist.');
+      return;
+    }
     const toastStyle = createToastStyle();
     document.head.appendChild(toastStyle);
 
-    if (!document.body) {
-      showToast('Unable to initialise, document.body does not exist.');
-      return;
-    }
     window.addEventListener('keydown', keyDownHandler);
     window.addEventListener('keyup', keyUpHandler);
     window.addEventListener('mousemove', cursorMovedHandler);
-    window.addEventListener('touchmove', cursorMovedHandler);
 
     // press 1 to remove all links
     window.addEventListener('keydown', disableInteractions);
@@ -426,14 +432,13 @@ const Spacing = {
     // press 3 to wrap each text node in a span, i.e. make all text nodes selectable
     window.addEventListener('keydown', makeTextNodesSelectable);
 
-    showToast('Spacingjs loaded in this frame!');
+    showToast('Spacingjs is loaded in this frame!');
   },
 
   stop() {
     window.removeEventListener('keydown', keyDownHandler);
     window.removeEventListener('keyup', keyUpHandler);
     window.removeEventListener('mousemove', cursorMovedHandler);
-    window.removeEventListener('touchmove', cursorMovedHandler);
 
     window.removeEventListener('keydown', disableInteractions);
     window.removeEventListener('keydown', restoreInteractions);
@@ -491,11 +496,11 @@ const cursorMovedHandler = (e) => {
   }
 
   setTargetElement().then(() => {
-    if (selectedElement != null && targetElement != null) {
+    if (selectedElement !== null && targetElement !== null) {
       // Do the calculation
       const selectedElementRect = selectedElement.getBoundingClientRect();
-      const targetElementRect = targetElement.getBoundingClientRect();
       const selected = new Rect(selectedElementRect);
+      const targetElementRect = targetElement.getBoundingClientRect();
       const target = new Rect(targetElementRect);
       removeMarks();
       let top;
@@ -506,14 +511,14 @@ const cursorMovedHandler = (e) => {
       if (selected.containing(target)
         || selected.inside(target)
         || selected.colliding(target)) {
-        console.log('containing || inside || colliding');
+        // console.log('containing || inside || colliding');
         top = Math.round(Math.abs(selectedElementRect.top - targetElementRect.top));
         bottom = Math.round(Math.abs(selectedElementRect.bottom - targetElementRect.bottom));
         left = Math.round(Math.abs(selectedElementRect.left - targetElementRect.left));
         right = Math.round(Math.abs(selectedElementRect.right - targetElementRect.right));
         outside = false;
       } else {
-        console.log('outside');
+        // console.log('outside');
         top = Math.round(Math.abs(selectedElementRect.top - targetElementRect.bottom));
         bottom = Math.round(Math.abs(selectedElementRect.bottom - targetElementRect.top));
         left = Math.round(Math.abs(selectedElementRect.left - targetElementRect.right));
