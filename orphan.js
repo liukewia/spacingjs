@@ -377,7 +377,7 @@ const createToastStyle = () => {
     
     .${TEXT_CLASS} {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "apple color emoji", "segoe ui emoji", "Segoe UI Symbol", "noto color emoji";
-    }`;
+    }`.replace(/\n/g, '');
   return toastStyle;
 };
 
