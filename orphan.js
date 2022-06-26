@@ -6,21 +6,27 @@
 // @author       You
 // @namespace    stevenlei
 // @grant        none
-// @not-require  https://unpkg.com/spacingjs
 // @icon         https://lh3.googleusercontent.com/Z21RzHwgZJ25br-OdZV0ME4zjkrEPnsoGm8DGTbgk7x5cP-wpwav91fYtcmchLx_pHonfD_AFGaBj2yAKIvKqFppIA=w128-h128-e365-rj-sc0x00ffffff
 // @run-at document-start
 // @match        *://*/*
 // ==/UserScript==
 
 const MEASURE_TRIGGER_KEY = 'q';
-const SESSION_RANDOM = Math.random().toString(16).substring(2, 6);
-const TOAST_CLASS = `toast-${SESSION_RANDOM}`;
-// const HOVER_DISABLED_CSS_ID = `hover-disabled-${SESSION_RANDOM}`;
-const TOAST_SELECTOR = `.${TOAST_CLASS}`;
+// const SESSION_RANDOM = Math.random().toString(16).substring(2, 6);
+const CX_PREFIX = 'spacing-js-';
+const TOAST_CLASS = `${CX_PREFIX}toast`;
+const TEXT_CLASS = `${CX_PREFIX}text`;
+const MARKER_CLASS = `${CX_PREFIX}marker`;
+const MARKER_VALUE_CLASS = `${CX_PREFIX}marker-value`;
+
+const MAX_Z_INDEX = 2147483647;
+const PLACEHOLDER_Z_INDEX = MAX_Z_INDEX - 1;
+const MARKER_Z_INDEX = PLACEHOLDER_Z_INDEX - 1;
 
 const createToastNode = (msg) => {
   const node = document.createElement('div');
   node.classList.add(TOAST_CLASS);
+  node.classList.add(TEXT_CLASS);
   node.innerText = msg;
   return node;
 };
@@ -28,13 +34,25 @@ const createToastNode = (msg) => {
 const showToast = (msg) => {
   const toastNode = createToastNode(msg);
 
-  document.querySelector('body').appendChild(toastNode);
+  document.body.appendChild(toastNode);
   setTimeout(() => {
-    const node = document.querySelector(TOAST_SELECTOR);
-    if (node) {
-      document.body.removeChild(node);
-    }
+    const node = document.querySelector(`.${TOAST_CLASS}`);
+    node?.remove();
   }, 3000);
+};
+
+const isMobile = () => {
+  const toMatch = [
+    /Android/i,
+    /webOS/i,
+    /iPhone/i,
+    /iPad/i,
+    /iPod/i,
+    /BlackBerry/i,
+    /Windows Phone/i,
+  ];
+
+  return toMatch.some((toMatchItem) => navigator.userAgent.match(toMatchItem));
 };
 
 // File: Rect.js
@@ -75,7 +93,7 @@ class Rect {
 
 const createPlaceholderElement = (type, width, height, top, left, color) => {
   const placeholder = document.createElement('div');
-  placeholder.classList.add(`spacing-js-${type}-placeholder`);
+  placeholder.classList.add(`${CX_PREFIX}${type}-placeholder`);
   placeholder.style.border = `2px solid ${color}`;
   placeholder.style.position = 'fixed';
   placeholder.style.background = 'none';
@@ -87,10 +105,11 @@ const createPlaceholderElement = (type, width, height, top, left, color) => {
   placeholder.style.top = `${top - 1}px`;
   placeholder.style.left = `${left - 1}px`;
   placeholder.style.pointerEvents = 'none';
-  placeholder.style.zIndex = '9999';
+  placeholder.style.zIndex = PLACEHOLDER_Z_INDEX.toString();
   placeholder.style.boxSizing = 'content-box';
   document.body.appendChild(placeholder);
   const dimension = document.createElement('span');
+  dimension.classList.add(TEXT_CLASS);
   dimension.style.background = color;
   dimension.style.position = 'fixed';
   dimension.style.display = 'inline-block';
@@ -111,15 +130,13 @@ const createPlaceholderElement = (type, width, height, top, left, color) => {
   }
   dimension.style.top = `${topOffset - 1}px`;
   dimension.style.left = `${left - 1}px`;
-  dimension.innerText = `${arrow} ${Math.round(width)}px × ${Math.round(height)}px`;
+  dimension.innerText = `${arrow} ${Math.round(width)} × ${Math.round(height)}`;
   placeholder.appendChild(dimension);
 };
 
 const clearPlaceholderElement = (type) => {
-  const placeholder = document.querySelector(`.spacing-js-${type}-placeholder`);
-  if (placeholder) {
-    placeholder.remove();
-  }
+  const placeholder = document.querySelector(`.${CX_PREFIX}${type}-placeholder`);
+  placeholder?.remove();
 };
 
 // File: marker.js
@@ -128,7 +145,7 @@ const createLine = (width, height, top, left, text, border = 'none') => {
   const marker = document.createElement('span');
   marker.style.backgroundColor = 'red';
   marker.style.position = 'fixed';
-  marker.classList.add('spacing-js-marker');
+  marker.classList.add(MARKER_CLASS);
   marker.style.width = `${width}px`;
   marker.style.height = `${height}px`;
   if (border === 'x') {
@@ -142,23 +159,22 @@ const createLine = (width, height, top, left, text, border = 'none') => {
   marker.style.pointerEvents = 'none';
   marker.style.top = `${top}px`;
   marker.style.left = `${left}px`;
-  marker.style.zIndex = '9998';
+  marker.style.zIndex = MARKER_Z_INDEX.toString();
   marker.style.boxSizing = 'content-box';
   const value = document.createElement('span');
-  value.classList.add('spacing-js-value');
+  value.classList.add(MARKER_VALUE_CLASS);
+  value.classList.add(TEXT_CLASS);
   value.style.backgroundColor = 'red';
   value.style.color = 'white';
   value.style.fontSize = '10px';
   value.style.display = 'inline-block';
-  value.style.fontFamily = 'Helvetica, sans-serif';
-  value.style.fontWeight = 'bold';
   value.style.borderRadius = '20px';
   value.style.position = 'fixed';
   value.style.width = '42px';
   value.style.lineHeight = '15px';
   value.style.height = '16px';
   value.style.textAlign = 'center';
-  value.style.zIndex = '10000';
+  value.style.zIndex = MAX_Z_INDEX.toString();
   value.style.pointerEvents = 'none';
   value.innerText = text;
   value.style.boxSizing = 'content-box';
@@ -265,10 +281,10 @@ const placeMark = (rect1, rect2, direction, value, edgeToEdge = false) => {
 
 const removeMarks = () => {
   document
-    .querySelectorAll('.spacing-js-marker')
+    .querySelectorAll(`.${MARKER_CLASS}`)
     .forEach((element) => element.remove());
   document
-    .querySelectorAll('.spacing-js-value')
+    .querySelectorAll(`.${MARKER_VALUE_CLASS}`)
     .forEach((element) => element.remove());
 };
 
@@ -281,130 +297,152 @@ let targetElement;
 let delayedDismiss = false;
 let delayedRef = null;
 
-const eventTypesToRemove = ['click', 'mouseover', 'mouseenter'];
+const EVENT_TYPES_TO_LISTEN = [
+  'click',
+  // hover
+  'mouseover',
+  'mouseenter',
+];
 
-const removeClickHandler = (clickEvent) => {
+const disableClickHandler = (clickEvent) => {
   clickEvent.preventDefault();
   clickEvent.stopImmediatePropagation();
   return false;
 };
 
-// const addDisableHoverStyle = () => {
-//   const hasAdded = !!document.getElementById(HOVER_DISABLED_CSS_ID);
-//   if (hasAdded) {
-//     return;
-//   }
-
-//   // hover style override
-//   const hoverStyle = document.createElement('style');
-//   hoverStyle.id = HOVER_DISABLED_CSS_ID;
-//   hoverStyle.innerText = '*:hover {}';
-//   document.querySelector('head').appendChild(hoverStyle);
-// };
-
-const removeAllLinks = (keyboardEvent) => {
+const disableInteractions = (keyboardEvent) => {
   if (keyboardEvent.key !== '1') {
     return;
   }
-
-  // addDisableHoverStyle();
-
-  eventTypesToRemove.forEach((eventType) => {
+  EVENT_TYPES_TO_LISTEN.forEach((eventType) => {
     window.addEventListener(
       eventType,
-      removeClickHandler,
+      disableClickHandler,
       true,
     );
   });
+  // also hover behaviors
   showToast('Click behavior disabled');
 };
 
-// const removeDisableHoverStyle = () => {
-//   const style = document.getElementById(HOVER_DISABLED_CSS_ID);
-//   if (!style) {
-//     return;
-//   }
-//   style.remove();
-// };
-
-const restoreAllLinks = (keyboardEvent) => {
+const restoreInteractions = (keyboardEvent) => {
   if (keyboardEvent.key !== '2') {
     return;
   }
-  // removeDisableHoverStyle();
-  eventTypesToRemove.forEach((eventType) => {
+  EVENT_TYPES_TO_LISTEN.forEach((eventType) => {
     window.removeEventListener(
       eventType,
-      removeClickHandler,
+      disableClickHandler,
       true,
     );
   });
   showToast('Click behavior restored');
 };
 
-const addToastStyle = () => {
+const createToastStyle = () => {
   // toast style
   const toastStyle = document.createElement('style');
-  toastStyle.innerText = `${TOAST_SELECTOR} {
-  min-width: 250px;
-  margin-left: -125px;
-  background-color: #333;
-  color: #fff;
-  text-align: center;
-  border-radius: 4px;
-  padding: 16px;
-  position: fixed;
-  z-index: 99999;
-  left: 50%;
-  top: 30px;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "apple color emoji", "segoe ui emoji", "Segoe UI Symbol", "noto color emoji";
-  font-size: 17px;
-  animation: ${TOAST_CLASS}-fadein 0.5s forwards, ${TOAST_CLASS}-fadeout 0.5s 2.5s forwards;
-}
+  toastStyle.innerText = `
+    .${TOAST_CLASS} {
+      min-width: 250px;
+      margin-left: -125px;
+      background-color: #333;
+      color: #fff;
+      text-align: center;
+      border-radius: 4px;
+      padding: 16px;
+      position: fixed;
+      z-index: ${MAX_Z_INDEX};
+      left: 50%;
+      top: 30px;
+      font-size: 17px;
+      animation: ${TOAST_CLASS}-fadein 0.5s forwards, ${TOAST_CLASS}-fadeout 0.5s 2.5s forwards;
+    }
 
-@keyframes ${TOAST_CLASS}-fadein {
-  from {top: 0; opacity: 0;}
-  to {top: 30px; opacity: 1;}
-}
+    @keyframes ${TOAST_CLASS}-fadein {
+      from {top: 0; opacity: 0;}
+      to {top: 30px; opacity: 1;}
+    }
 
-@keyframes ${TOAST_CLASS}-fadeout {
-  from {top: 30px; opacity: 1;}
-  to {top: 0; opacity: 0;}
-}`;
-  document.querySelector('head').appendChild(toastStyle);
+    @keyframes ${TOAST_CLASS}-fadeout {
+      from {top: 30px; opacity: 1;}
+      to {top: 0; opacity: 0;}
+    }
+    
+    .${TEXT_CLASS} {
+      font-weight: bold;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "apple color emoji", "segoe ui emoji", "Segoe UI Symbol", "noto color emoji";
+    }`;
+  return toastStyle;
+};
+
+const makeTextNodesSelectable = (keyboardEvent) => {
+  if (keyboardEvent.key !== '3') {
+    return;
+  }
+  const NODE_NAMES_NOT_TO_CHECK = [
+    'script',
+    'style',
+    'noscript',
+    '#text',
+    '#comment',
+    '#document',
+  ];
+  const nodeList = [...document.body.childNodes];
+  while (nodeList.length) {
+    const node = nodeList.shift();
+    const parent = node.parentNode;
+    const nodeName = parent.nodeName.toLowerCase();
+    if (node.nodeType === node.TEXT_NODE
+      && !NODE_NAMES_NOT_TO_CHECK.includes(nodeName)) {
+      const span = document.createElement('span');
+      span.innerText = node.wholeText;
+      parent.replaceChild(span, node);
+    } else {
+      nodeList.unshift(...node.childNodes);
+    }
+  }
+  showToast('Made all text nodes selectable');
 };
 
 const Spacing = {
   start() {
-    addToastStyle();
+    const toastStyle = createToastStyle();
+    document.head.appendChild(toastStyle);
 
-    if (!document.querySelector('body')) {
+    if (!document.body) {
       showToast('Unable to initialise, document.body does not exist.');
       return;
     }
     window.addEventListener('keydown', keyDownHandler);
     window.addEventListener('keyup', keyUpHandler);
     window.addEventListener('mousemove', cursorMovedHandler);
+    window.addEventListener('touchmove', cursorMovedHandler);
 
     // press 1 to remove all links
-    window.addEventListener('keydown', removeAllLinks);
+    window.addEventListener('keydown', disableInteractions);
     // press 2 to restore all links
-    window.addEventListener('keydown', restoreAllLinks);
+    window.addEventListener('keydown', restoreInteractions);
+    // press 3 to wrap each text node in a span, i.e. make all text nodes selectable
+    window.addEventListener('keydown', makeTextNodesSelectable);
 
-    showToast('spacingjs loaded in this frame!');
+    showToast('Spacingjs loaded in this frame!');
   },
 
   stop() {
     window.removeEventListener('keydown', keyDownHandler);
     window.removeEventListener('keyup', keyUpHandler);
     window.removeEventListener('mousemove', cursorMovedHandler);
+    window.removeEventListener('touchmove', cursorMovedHandler);
 
-    window.removeEventListener('keydown', removeAllLinks);
-    window.removeEventListener('keydown', restoreAllLinks);
+    window.removeEventListener('keydown', disableInteractions);
+    window.removeEventListener('keydown', restoreInteractions);
+
+    window.removeEventListener('keydown', makeTextNodesSelectable);
   },
 };
 
-function keyDownHandler(e) {
+const keyDownHandler = (e) => {
   if (delayedDismiss) {
     cleanUp();
     if (delayedRef) {
@@ -416,33 +454,31 @@ function keyDownHandler(e) {
     e.preventDefault();
     active = true;
     setSelectedElement();
-    preventPageScroll(true);
+    disablePageScroll();
   }
   if (e.shiftKey) {
     delayedDismiss = true;
   }
-}
+};
 
-function keyUpHandler(e) {
+const keyUpHandler = (e) => {
   if (e.key === MEASURE_TRIGGER_KEY && active) {
     active = false;
-    delayedRef = setTimeout(() => {
-      cleanUp();
-    }, delayedDismiss ? 3000 : 0);
+    delayedRef = setTimeout(cleanUp, delayedDismiss ? 3000 : 0);
   }
-}
+};
 
-function cleanUp() {
+const cleanUp = () => {
   clearPlaceholderElement('selected');
   clearPlaceholderElement('target');
   delayedDismiss = false;
   selectedElement = null;
   targetElement = null;
   removeMarks();
-  preventPageScroll(false);
-}
+  restorePageScroll();
+};
 
-function cursorMovedHandler(e) {
+const cursorMovedHandler = (e) => {
   if (e.composedPath) {
     // Use composedPath to detect the hovering element for supporting shadow DOM
     [hoveringElement] = e.composedPath();
@@ -484,56 +520,54 @@ function cursorMovedHandler(e) {
         right = Math.round(Math.abs(selectedElementRect.right - targetElementRect.left));
         outside = true;
       }
-      placeMark(selected, target, 'top', `${top}px`, outside);
-      placeMark(selected, target, 'bottom', `${bottom}px`, outside);
-      placeMark(selected, target, 'left', `${left}px`, outside);
-      placeMark(selected, target, 'right', `${right}px`, outside);
+      placeMark(selected, target, 'top', top, outside);
+      placeMark(selected, target, 'bottom', bottom, outside);
+      placeMark(selected, target, 'left', left, outside);
+      placeMark(selected, target, 'right', right, outside);
     }
   });
-}
+};
 
-function setSelectedElement() {
+const setSelectedElement = () => {
   if (hoveringElement && hoveringElement !== selectedElement) {
     selectedElement = hoveringElement;
     clearPlaceholderElement('selected');
     const rect = selectedElement.getBoundingClientRect();
     createPlaceholderElement('selected', rect.width, rect.height, rect.top, rect.left, 'red');
   }
-}
+};
 
-function setTargetElement() {
-  return new Promise((resolve) => {
-    if (active
-      && hoveringElement
-      && hoveringElement !== selectedElement
-      && hoveringElement !== targetElement) {
-      targetElement = hoveringElement;
-      clearPlaceholderElement('target');
-      const rect = targetElement.getBoundingClientRect();
-      createPlaceholderElement('target', rect.width, rect.height, rect.top, rect.left, 'blue');
-      resolve();
-    }
-  });
-}
-
-function preventPageScroll(_active) {
-  if (_active) {
-    window.addEventListener('DOMMouseScroll', scrollingPreventDefault, false);
-    window.addEventListener('wheel', scrollingPreventDefault, { passive: false });
-    window.addEventListener('mousewheel', scrollingPreventDefault, { passive: false });
-  } else {
-    window.removeEventListener('DOMMouseScroll', scrollingPreventDefault);
-    window.removeEventListener('wheel', scrollingPreventDefault);
-    window.removeEventListener('mousewheel', scrollingPreventDefault);
+const setTargetElement = () => new Promise((resolve) => {
+  if (active
+    && hoveringElement
+    && hoveringElement !== selectedElement
+    && hoveringElement !== targetElement) {
+    targetElement = hoveringElement;
+    clearPlaceholderElement('target');
+    const rect = targetElement.getBoundingClientRect();
+    createPlaceholderElement('target', rect.width, rect.height, rect.top, rect.left, 'blue');
+    resolve();
   }
-}
+});
 
-function scrollingPreventDefault(e) {
-  e.preventDefault();
-}
+const disablePageScroll = () => {
+  window.addEventListener('DOMMouseScroll', disableScrollHandler, false);
+  window.addEventListener('wheel', disableScrollHandler, { passive: false });
+  window.addEventListener('mousewheel', disableScrollHandler, { passive: false });
+};
+
+const restorePageScroll = () => {
+  window.removeEventListener('DOMMouseScroll', disableScrollHandler);
+  window.removeEventListener('wheel', disableScrollHandler);
+  window.removeEventListener('mousewheel', disableScrollHandler);
+};
+
+const disableScrollHandler = (scrollEvent) => {
+  scrollEvent.preventDefault();
+};
 
 // File: index.js
 // load the file as fast as possible (`@run-at` in metadata),
 // but `spacing.start()` triggers when load event is fired
-// so that `body` is more likely to be loaded
+// so that `body` is guaranteed to be loaded
 window.addEventListener('load', Spacing.start);

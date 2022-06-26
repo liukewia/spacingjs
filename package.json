@@ -11,16 +11,7 @@
     "format": "prettier --write '**/*.{ts,tsx,js,jsx,json,md}'",
     "ext": "node extensions.config.js"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/stevenlei/spacingjs.git"
-  },
-  "author": "Steven Lei",
   "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/stevenlei/spacingjs/issues"
-  },
-  "homepage": "https://github.com/stevenlei/spacingjs#readme",
   "devDependencies": {
     "@liukewia/eslint-config": "^2.0.4",
     "@babel/core": "^7.15.8",

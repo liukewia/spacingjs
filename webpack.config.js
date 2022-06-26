@@ -1,29 +1,25 @@
-const webpack = require("webpack");
-const path = require("path");
-const TerserPlugin = require("terser-webpack-plugin");
-const { version } = require("./package.json");
+const path = require('path');
+const TerserPlugin = require('terser-webpack-plugin');
 
 /**
  * @type {webpack.Configuration}
  */
 module.exports = {
-  entry: "./src/index.ts",
+  entry: './src/index.ts',
   output: {
-    path: path.resolve(__dirname, "dist"),
-    filename: "bundle.js",
+    path: path.resolve(__dirname, 'dist'),
+    filename: 'bundle.js',
     library: {
-      name: "Spacing",
-      type: "window",
+      name: 'Spacing',
+      type: 'window',
     },
   },
-  resolve: {
-    extensions: [".ts", ".js", ".json"],
-  },
+  resolve: { extensions: ['.ts', '.js', '.json'] },
   module: {
     rules: [
       {
         test: /\.(t|j)s$/,
-        loader: "babel-loader",
+        loader: 'babel-loader',
         exclude: /(node_modules)/,
       },
     ],
@@ -31,19 +27,9 @@ module.exports = {
   optimization: {
     minimizer: [
       new TerserPlugin({
-        terserOptions: {
-          compress: {
-            pure_funcs: ["console.info", "console.debug", "console.log"],
-          },
-        },
+        terserOptions: { compress: { pure_funcs: ['console.info', 'console.debug', 'console.log'] } },
         extractComments: false,
       }),
     ],
   },
-  plugins: [
-    new webpack.BannerPlugin({
-      banner: `/*!\n * Spacing.js v${version}\n * Copyright (c) 2021 Steven Lei\n * Released under the MIT License.\n*/`,
-      raw: true,
-    }),
-  ],
 };
